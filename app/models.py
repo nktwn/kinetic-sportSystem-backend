@@ -2,6 +2,7 @@ from sqlmodel import SQLModel, Field
 from typing import Optional
 from pydantic import BaseModel
 
+
 class User(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     username: str
@@ -9,7 +10,7 @@ class User(SQLModel, table=True):
     iin: str
     full_name: str
     rank: str
-    role: str
+    role: str  # Сохраняем роль пользователя
 
 class UserCreate(BaseModel):
     username: str
@@ -17,7 +18,7 @@ class UserCreate(BaseModel):
     iin: str
     full_name: str
     rank: str
-    role: str
+    role: str  # Роль: "admin", "hr", или "employee"
 
 class Token(BaseModel):
     access_token: str
