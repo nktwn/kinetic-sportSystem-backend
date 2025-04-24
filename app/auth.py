@@ -59,7 +59,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), session: Session = D
 def read_current_user(current_user: TokenData = Depends(get_current_user)):
     return current_user
 
-@auth_router.post("/update-role")
+@auth_router.put("/update-role")
 def update_role(new_role: str, current_user: TokenData = Depends(get_current_user), session: Session = Depends(get_session)):
     if new_role not in VALID_ROLES:
         raise HTTPException(status_code=400, detail="Invalid role. Choose 'admin', 'hr', or 'employee'")
@@ -73,3 +73,4 @@ def update_role(new_role: str, current_user: TokenData = Depends(get_current_use
     session.refresh(user)
     
     return {"message": f"Role updated to {new_role} for user {user.username}"}
+
