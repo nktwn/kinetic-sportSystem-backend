@@ -10,7 +10,7 @@ class User(SQLModel, table=True):
     iin: str
     full_name: str
     rank: str
-    role: str  # Сохраняем роль пользователя
+    role: str
 
 class UserCreate(BaseModel):
     username: str
@@ -18,7 +18,7 @@ class UserCreate(BaseModel):
     iin: str
     full_name: str
     rank: str
-    role: str  # Роль: "admin", "hr", или "employee"
+    role: str
 
 class Token(BaseModel):
     access_token: str
