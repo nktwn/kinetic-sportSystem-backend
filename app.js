@@ -7,6 +7,10 @@ const sequelize = require('./config/db');
 const http = require('http'); 
 const socketIo = require('socket.io');  
 const authRoutes = require('./routes/authRoutes');
+const activitiesRoutes = require('./routes/activitiesRoutes');
+const eventsRoutes = require('./routes/eventsRoutes');
+
+
 dotenv.config();
 
 const app = express();
@@ -48,6 +52,10 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 app.use('/auth', authRoutes);
 
+app.use('/activities', activitiesRoutes);
+
+app.use('/events', eventsRoutes);
+
 app.get('/', (req, res) => {
   res.json({ message: "Kinetic SportSystem Backend Running..." });
 });
@@ -59,3 +67,5 @@ sequelize.sync()
     });
   })
   .catch((error) => console.log("Database connection failed: ", error));
+
+  
