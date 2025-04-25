@@ -242,7 +242,7 @@
     "/events": {
       "get": {
         "tags": ["Events"],
-        "summary": "Получить события календаря (хардкод)",
+        "summary": "Получить события календаря",
         "operationId": "getEvents",
         "responses": {
           "200": {
@@ -254,6 +254,43 @@
                   "items": {
                     "$ref": "#/components/schemas/CalendarEvent"
                   }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Events"],
+        "summary": "Создать новое событие",
+        "operationId": "createEvent",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CalendarEvent"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Событие успешно создано",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalendarEvent"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка валидации",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
                 }
               }
             }
@@ -410,19 +447,40 @@
         "properties": {
           "id": {
             "type": "integer",
-            "example": 1
+            "example": 2
           },
           "title": {
             "type": "string",
-            "example": "All-day event"
+            "example": "Timed event"
           },
           "start": {
             "type": "string",
             "format": "date-time",
-            "example": "2025-04-24T12:00:00"
+            "example": "2025-04-25T12:00:00"
+          },
+          "location": {
+            "type": "string",
+            "example": "Astana"
+          },
+          "type": {
+            "type": "string",
+            "example": "power"
+          },
+          "class": {
+            "type": "string",
+            "example": "push-ups"
           }
         },
-        "required": ["id", "title", "start"]
+        "required": ["title", "start", "location", "type", "class"]
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Тип занятия не найден"
+          }
+        }
       },
       "Error": {
         "type": "object",

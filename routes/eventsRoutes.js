@@ -1,21 +1,32 @@
 const express = require('express');
+const Event = require('../models/Event');
 const router = express.Router();
 
-const events = [
-  {
-    id: 1,
-    title: "All-day event",
-    start: "2025-04-24T12:00:00"
-  },
-  {
-    id: 2,
-    title: "Timed event",
-    start: new Date().toISOString().split('T')[0] + "T12:00:00"
-  }
-];
-
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
+  const events = await Event.findAll();
   res.json(events);
+});
+
+router.post('/', async (req, res) => {
+  const { title, start, location, type, class: cls } = req.body;
+
+  if (!title || !start || !location || !type || !cls) {
+    return res.status(400).json({ message: "Все поля обязательны" });
+  }
+
+  try {
+    const newEvent = await Event.create({
+      title,
+      start,
+      location,
+      type,
+      class: cls
+    });
+    res.status(201).json(newEvent);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Ошибка при создании события' });
+  }
 });
 
 module.exports = router;
