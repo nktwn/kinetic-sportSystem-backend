@@ -48,4 +48,7 @@ router.get('/types/:id/classes', (req, res) => {
   res.json(classes);
 });
 
-module.exports = router;
+module.exports = {
+    router,
+    activityData 
+  };

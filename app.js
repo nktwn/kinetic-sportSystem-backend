@@ -7,7 +7,7 @@ const sequelize = require('./config/db');
 const http = require('http'); 
 const socketIo = require('socket.io');  
 const authRoutes = require('./routes/authRoutes');
-const activitiesRoutes = require('./routes/activitiesRoutes');
+const { router: activitiesRoutes } = require('./routes/activitiesRoutes');
 const eventsRoutes = require('./routes/eventsRoutes');
 
 
