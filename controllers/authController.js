@@ -23,21 +23,27 @@ exports.register = async (req, res) => {
   }
 };
 exports.login = async (req, res) => {
-    const { username, password } = req.body;
-  
-    try {
-      const user = await User.findOne({ where: { username } });
-      if (!user) return res.status(404).json({ message: 'User not found' });
-  
-      const validPassword = await bcrypt.compare(password, user.password);
-      if (!validPassword) return res.status(401).json({ message: 'Invalid credentials' });
-  
-      const token = jwt.sign({ id: user.id, username: user.username, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
-      res.json({ access_token: token, token_type: 'bearer' });
-    } catch (error) {
-      res.status(500).json({ message: 'Error logging in' });
-    }
-  };
+  const { username, password } = req.body;
+
+  try {
+    const user = await User.findOne({ where: { username } });
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    const validPassword = await bcrypt.compare(password, user.password);
+    if (!validPassword) return res.status(401).json({ message: 'Invalid credentials' });
+
+    const token = jwt.sign({ id: user.id, username: user.username, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+    res.json({
+      access_token: token,
+      token_type: 'bearer',
+      role: user.role 
+    });
+
+  } catch (error) {
+    res.status(500).json({ message: 'Error logging in' });
+  }
+};
   
 exports.getCurrentUser = async (req, res) => {
   const token = req.headers.authorization?.split(' ')[1]; 
