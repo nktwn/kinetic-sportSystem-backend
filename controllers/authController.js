@@ -12,7 +12,6 @@ exports.register = async (req, res) => {
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Проверяем, существует ли переданный департамент (если передали)
     if (departmentId) {
       const departmentExists = await Department.findByPk(departmentId);
       if (!departmentExists) {

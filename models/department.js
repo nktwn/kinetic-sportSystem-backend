@@ -14,7 +14,6 @@ const Department = sequelize.define('Department', {
   }
 });
 
-// Связь моделей
 Department.hasMany(User, { foreignKey: 'departmentId' });
 User.belongsTo(Department, { foreignKey: 'departmentId' });
 

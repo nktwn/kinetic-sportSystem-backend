@@ -11,7 +11,7 @@ const departmentUsersRoutes = require('./routes/departmentUsersRoutes');
 const User = require('./models/user.js');
 const Department = require('./models/department');
 
-const Event = require('./models/Event.js');
+const Event = require('./models/event.js');
 
 const authRoutes = require('./routes/authRoutes');
 const { router: activitiesRoutes } = require('./routes/activitiesRoutes');
