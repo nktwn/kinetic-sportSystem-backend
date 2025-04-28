@@ -1,14 +1,25 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/user');
+const Department = require('../models/Department');
 const dotenv = require('dotenv');
 dotenv.config();
 
+
 exports.register = async (req, res) => {
-  const { username, password, iin, full_name, rank, role } = req.body;
+  const { username, password, iin, full_name, rank, role, departmentId } = req.body;
 
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Проверяем, существует ли переданный департамент (если передали)
+    if (departmentId) {
+      const departmentExists = await Department.findByPk(departmentId);
+      if (!departmentExists) {
+        return res.status(400).json({ message: 'Указанный департамент не найден' });
+      }
+    }
+
     const user = await User.create({
       username,
       password: hashedPassword,
@@ -16,12 +27,16 @@ exports.register = async (req, res) => {
       full_name,
       rank,
       role,
+      departmentId: departmentId || null
     });
+
     res.status(200).json(user);
   } catch (error) {
-    res.status(500).json({ message: 'Error registering user' });
+    console.error(error);
+    res.status(500).json({ message: 'Ошибка при регистрации пользователя' });
   }
 };
+
 exports.login = async (req, res) => {
   const { username, password } = req.body;
 

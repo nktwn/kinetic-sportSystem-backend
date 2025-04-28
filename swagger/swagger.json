@@ -25,7 +25,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
               }
             }
           },
@@ -239,6 +241,216 @@
         }
       }
     },
+    "/departments": {
+      "get": {
+        "tags": ["Departments"],
+        "summary": "Get all departments",
+        "operationId": "getAllDepartments",
+        "responses": {
+          "200": {
+            "description": "List of departments",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Department"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Departments"],
+        "summary": "Create new department",
+        "operationId": "createDepartment",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DepartmentCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Department created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Department"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/departments/{id}": {
+      "get": {
+        "tags": ["Departments"],
+        "summary": "Get department by ID",
+        "operationId": "getDepartmentById",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Department details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Department"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Department not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["Departments"],
+        "summary": "Update department",
+        "operationId": "updateDepartment",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DepartmentUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Department updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Department"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Departments"],
+        "summary": "Delete department",
+        "operationId": "deleteDepartment",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Department deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Department not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/departments/{id}/users": {
+      "get": {
+        "tags": ["Departments"],
+        "summary": "Получить пользователей департамента",
+        "operationId": "getUsersByDepartment",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID департамента",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Список пользователей департамента",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserShort"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Пользователи не найдены",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/events": {
       "get": {
         "tags": ["Events"],
@@ -262,31 +474,34 @@
       },
       "post": {
         "tags": ["Events"],
-        "summary": "Создать новое событие",
-        "operationId": "createEvent",
+        "summary": "Создать события для пользователей",
+        "operationId": "createEventsForUsers",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CalendarEvent"
+                "$ref": "#/components/schemas/CreateEventRequest"
               }
             }
           }
         },
         "responses": {
           "201": {
-            "description": "Событие успешно создано",
+            "description": "События успешно созданы",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CalendarEvent"
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CalendarEvent"
+                  }
                 }
               }
             }
           },
           "400": {
-            "description": "Ошибка валидации",
+            "description": "Ошибка запроса",
             "content": {
               "application/json": {
                 "schema": {
@@ -409,33 +624,49 @@
       "UserCreate": {
         "type": "object",
         "properties": {
-          "username": {
-            "type": "string",
-            "title": "Username"
-          },
-          "password": {
-            "type": "string",
-            "title": "Password"
-          },
-          "iin": {
-            "type": "string",
-            "title": "Iin"
-          },
-          "full_name": {
-            "type": "string",
-            "title": "Full Name"
-          },
-          "rank": {
-            "type": "string",
-            "title": "Rank"
-          },
-          "role": {
-            "type": "string",
-            "title": "Role"
-          }
+          "username": { "type": "string" },
+          "password": { "type": "string" },
+          "iin": { "type": "string" },
+          "full_name": { "type": "string" },
+          "rank": { "type": "string" },
+          "role": { "type": "string" },
+          "departmentId": { "type": "integer", "nullable": true }
         },
-        "required": ["username", "password", "iin", "full_name", "rank", "role"],
-        "title": "UserCreate"
+        "required": ["username", "password", "iin", "full_name", "rank", "role"]
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "username": { "type": "string" },
+          "full_name": { "type": "string" },
+          "rank": { "type": "string" },
+          "role": { "type": "string" },
+          "departmentId": { "type": "integer", "nullable": true }
+        }
+      },
+      "Department": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "name": { "type": "string" },
+          "description": { "type": "string" }
+        }
+      },
+      "DepartmentCreate": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "description": { "type": "string" }
+        },
+        "required": ["name"]
+      },
+      "DepartmentUpdate": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "description": { "type": "string" }
+        }
       },
       "ValidationError": {
         "type": "object",
@@ -519,15 +750,51 @@
         },
         "required": ["title", "start", "location", "type", "class"]
       },
-      "Error": {
+      "UserShort": {
         "type": "object",
         "properties": {
-          "message": {
-            "type": "string",
-            "example": "Тип занятия не найден"
-          }
+          "id": { "type": "integer", "example": 5 },
+          "username": { "type": "string", "example": "john_doe" },
+          "full_name": { "type": "string", "example": "John Doe" },
+          "rank": { "type": "string", "example": "Captain" },
+          "role": { "type": "string", "example": "employee" }
         }
       },
+      "CreateEventRequest": {
+        "type": "object",
+        "properties": {
+          "start": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2025-05-01T09:00:00"
+          },
+          "title": {
+            "type": "string",
+            "example": "Групповая тренировка"
+          },
+          "location": {
+            "type": "string",
+            "example": "Astana"
+          },
+          "type": {
+            "type": "string",
+            "example": "Сила"
+          },
+          "class": {
+            "type": "string",
+            "example": "Отжимания"
+          },
+          "userIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "example": 5
+            }
+          }
+        },
+        "required": ["start", "title", "location", "type", "class", "userIds"]
+      },
+
       "Error": {
         "type": "object",
         "properties": {
