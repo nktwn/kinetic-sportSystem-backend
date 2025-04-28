@@ -327,7 +327,7 @@
       },
       "post": {
         "tags": ["Departments"],
-        "summary": "Создать новый отдел",
+        "summary": "Создать новый департамент",
         "operationId": "createDepartment",
         "security": [
           {
@@ -361,7 +361,7 @@
     "/departments/{id}": {
       "get": {
         "tags": ["Departments"],
-        "summary": "Get department by ID",
+        "summary": "Депортамент по ID",
         "operationId": "getDepartmentById",
         "parameters": [
           {
@@ -380,7 +380,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Department details",
+            "description": "Детали департамента",
             "content": {
               "application/json": {
                 "schema": {
@@ -390,7 +390,7 @@
             }
           },
           "404": {
-            "description": "Department not found",
+            "description": "Департамент не найден",
             "content": {
               "application/json": {
                 "schema": {
@@ -403,7 +403,7 @@
       },
       "put": {
         "tags": ["Departments"],
-        "summary": "Update department",
+        "summary": "Обновить департамент",
         "operationId": "updateDepartment",
         "parameters": [
           {
@@ -432,7 +432,7 @@
         },
         "responses": {
           "200": {
-            "description": "Department updated",
+            "description": "Департамент обновлен",
             "content": {
               "application/json": {
                 "schema": {
@@ -445,7 +445,7 @@
       },
       "delete": {
         "tags": ["Departments"],
-        "summary": "Delete department",
+        "summary": "Удалить департамент",
         "operationId": "deleteDepartment",
         "parameters": [
           {
@@ -464,7 +464,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Department deleted",
+            "description": "Департамент удален",
             "content": {
               "application/json": {
                 "schema": {
@@ -479,7 +479,7 @@
             }
           },
           "404": {
-            "description": "Department not found",
+            "description": "Департамент не найден",
             "content": {
               "application/json": {
                 "schema": {
@@ -494,7 +494,7 @@
     "/departments/{id}/users": {
       "get": {
         "tags": ["Departments"],
-        "summary": "Get users by department ID",
+        "summary": "Пользователи по ID департамента",
         "operationId": "getUsersByDepartment",
         "parameters": [
           {
