@@ -1,20 +1,47 @@
 const express = require('express');
 const Event = require('../models/event');
-const User = require('../models/user');
 const { activityData } = require('./activitiesRoutes');
+const { authenticate } = require('../middleware/authMiddleware');
 const router = express.Router();
 
-router.get('/', async (req, res) => {
-  const events = await Event.findAll();
-  res.json(events);
+router.get('/', authenticate, async (req, res) => {
+  try {
+    let events;
+
+    if (['admin', 'hr'].includes(req.user.role)) {
+      events = await Event.findAll();
+    } else if (req.user.role === 'employee') {
+      const allEvents = await Event.findAll();
+      const userId = req.user.id;
+
+      events = allEvents.filter(event => {
+        const userIds = event.userIds || [];
+        return userIds.includes(userId);
+      });
+    } else {
+      return res.status(403).json({ message: 'Недостаточно прав для просмотра событий' });
+    }
+
+    res.json(events);
+
+  } catch (error) {
+    console.error('Ошибка при получении событий:', error);
+    res.status(500).json({ message: 'Ошибка при получении событий' });
+  }
 });
 
 
-router.post('/', async (req, res) => {
+const User = require('../models/user');
+
+router.post('/', authenticate, async (req, res) => {
   const { start, title, location, type, class: cls, userIds } = req.body;
 
   if (!start || !title || !location || !type || !cls || !Array.isArray(userIds)) {
-    return res.status(400).json({ message: "Необходимо заполнить все поля и передать массив пользователей" });
+    return res.status(400).json({ message: "Все поля обязательны и userIds должен быть массивом" });
+  }
+
+  if (!['admin', 'hr'].includes(req.user.role)) {
+    return res.status(403).json({ message: 'Только HR или Admin могут создавать события' });
   }
 
   try {
@@ -28,7 +55,7 @@ router.post('/', async (req, res) => {
     }
 
     if (userIds.length === 0) {
-      return res.status(400).json({ message: 'Не выбраны пользователи для создания событий' });
+      return res.status(400).json({ message: 'Выберите хотя бы одного пользователя' });
     }
 
     const users = await User.findAll({
@@ -39,24 +66,42 @@ router.post('/', async (req, res) => {
       return res.status(404).json({ message: 'Один или несколько пользователей не найдены' });
     }
 
-    const createdEvents = await Promise.all(
-      users.map(user => Event.create({
-        title,
-        start,
-        location,
-        type,
-        class: cls,
-        userId: user.id
-      }))
-    );
+    const event = await Event.create({
+      title,
+      start,
+      location,
+      type,
+      class: cls,
+      userIds: JSON.stringify(userIds)
+    });
 
-    res.status(201).json(createdEvents);
+    res.status(201).json(event);
 
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Ошибка при создании событий' });
+    console.error('Ошибка при создании события:', error);
+    res.status(500).json({ message: 'Ошибка при создании события' });
   }
 });
+
+
+router.delete('/:id', authenticate, async (req, res) => {
+  const eventId = req.params.id;
+
+  try {
+    const event = await Event.findByPk(eventId);
+
+    if (!event) {
+      return res.status(404).json({ message: 'Событие не найдено' });
+    }
+
+    await event.destroy();
+    res.json({ message: 'Событие успешно удалено' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Ошибка при удалении события' });
+  }
+});
+
   
 
   router.delete('/:id', async (req, res) => {

@@ -21,7 +21,20 @@ const Event = sequelize.define('Event', {
   class: {
     type: DataTypes.STRING,
     allowNull: false
+  },
+  userIds: {
+    type: DataTypes.TEXT, // Мы будем хранить JSON
+    allowNull: false,
+    get() {
+      const rawValue = this.getDataValue('userIds');
+      return rawValue ? JSON.parse(rawValue) : [];
+    },
+    set(value) {
+      this.setDataValue('userIds', JSON.stringify(value));
+    }
   }
+}, {
+  timestamps: true
 });
 
 module.exports = Event;
