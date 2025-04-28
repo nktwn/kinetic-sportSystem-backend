@@ -1,4 +1,4 @@
-const Department = require('../models/Department');
+const Department = require('../models/department');
 const User = require('../models/user');
 
 exports.createDepartment = async (req, res) => {

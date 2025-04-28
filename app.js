@@ -8,9 +8,10 @@ const socketIo = require('socket.io');
 const sequelize = require('./config/db');
 const departmentUsersRoutes = require('./routes/departmentUsersRoutes');
 
-const User = require('./models/user');
-const Department = require('./models/Department');
-const Event = require('./models/event');
+const User = require('./models/user.js');
+const Department = require('./models/department');
+
+const Event = require('./models/Event.js');
 
 const authRoutes = require('./routes/authRoutes');
 const { router: activitiesRoutes } = require('./routes/activitiesRoutes');
