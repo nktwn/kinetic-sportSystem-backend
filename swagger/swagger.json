@@ -8,7 +8,7 @@
     "/auth/register": {
       "post": {
         "tags": ["Auth"],
-        "summary": "Register",
+        "summary": "Регистрация",
         "operationId": "register_auth_register_post",
         "requestBody": {
           "content": {
@@ -22,7 +22,7 @@
         },
         "responses": {
           "200": {
-            "description": "Successful Response",
+            "description": "Успешный запрос",
             "content": {
               "application/json": {
                 "schema": {
@@ -32,7 +32,7 @@
             }
           },
           "422": {
-            "description": "Validation Error",
+            "description": "Ошибка проверки",
             "content": {
               "application/json": {
                 "schema": {
@@ -47,7 +47,7 @@
     "/auth/login": {
       "post": {
         "tags": ["Auth"],
-        "summary": "Login",
+        "summary": "Авторизация",
         "operationId": "login_auth_login_post",
         "requestBody": {
           "content": {
@@ -61,7 +61,7 @@
         },
         "responses": {
           "200": {
-            "description": "Successful Response",
+            "description": "Успешный запрос",
             "content": {
               "application/json": {
                 "schema": {
@@ -86,11 +86,11 @@
     "/auth/me": {
       "get": {
         "tags": ["Auth"],
-        "summary": "Read Current User",
+        "summary": "Получение текущего пользователя",
         "operationId": "read_current_user_auth_me_get",
         "responses": {
           "200": {
-            "description": "Successful Response",
+            "description": "Успешный запрос",
             "content": {
               "application/json": {
                 "schema": {}
@@ -108,7 +108,7 @@
     "/auth/update-role": {
       "put": {
         "tags": ["Auth"],
-        "summary": "Update Role",
+        "summary": "Обновить роль",
         "operationId": "update_role_auth_update_role_put",
         "security": [
           {
@@ -123,13 +123,13 @@
             "schema": {
               "type": "string",
               "enum": ["admin", "hr", "employee"],
-              "title": "New Role"
+              "title": "Новая роль"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "Role updated successfully",
+            "description": "Роль успешно обновлена",
             "content": {
               "application/json": {
                 "schema": {
@@ -144,7 +144,7 @@
             }
           },
           "400": {
-            "description": "Invalid input",
+            "description": "Неверный ввод",
             "content": {
               "application/json": {
                 "schema": {
@@ -154,7 +154,7 @@
             }
           },
           "403": {
-            "description": "Forbidden: insufficient privileges",
+            "description": "Недостаточно прав",
             "content": {
               "application/json": {
                 "schema": {
@@ -164,7 +164,7 @@
             }
           },
           "404": {
-            "description": "User not found",
+            "description": "Пользователи не найден",
             "content": {
               "application/json": {
                 "schema": {
@@ -176,60 +176,62 @@
         }
       }
     },
-    "/activities/types": {
+    "/events": {
       "get": {
-        "tags": ["Activities"],
-        "summary": "Получить список типов занятий",
-        "operationId": "getActivityTypes",
+        "tags": ["Events"],
+        "summary": "Получить события календаря",
+        "operationId": "getEvents",
         "responses": {
           "200": {
-            "description": "Список типов занятий",
+            "description": "Список событий",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/ActivityType"
+                    "$ref": "#/components/schemas/CalendarEvent"
                   }
                 }
               }
             }
           }
-        }
-      }
-    },
-    "/activities/types/{id}/classes": {
-      "get": {
-        "tags": ["Activities"],
-        "summary": "Получить классы занятий по типу",
-        "operationId": "getActivityClassesByType",
-        "parameters": [
+        },
+        "security": [
           {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "description": "ID типа занятия",
-            "schema": {
-              "type": "integer"
+            "BearerAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": ["Events"],
+        "summary": "Создать события для пользователей",
+        "operationId": "createEventsForUsers",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateEventRequest"
+              }
             }
           }
-        ],
+        },
         "responses": {
-          "200": {
-            "description": "Список классов занятий",
+          "201": {
+            "description": "События успешно созданы",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/ActivityClass"
+                    "$ref": "#/components/schemas/CalendarEvent"
                   }
                 }
               }
             }
           },
-          "404": {
-            "description": "Тип занятия не найден",
+          "400": {
+            "description": "Ошибка запроса",
             "content": {
               "application/json": {
                 "schema": {
@@ -238,13 +240,69 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/events/{id}": {
+      "delete": {
+        "tags": ["Events"],
+        "summary": "Удалить событие по ID",
+        "operationId": "deleteEvent",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID события",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Событие удалено",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Событие успешно удалено"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Событие не найдено",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
       }
     },
     "/departments": {
       "get": {
         "tags": ["Departments"],
-        "summary": "Get all departments",
+        "summary": "Получить список департаментов",
         "operationId": "getAllDepartments",
         "security": [
           {
@@ -253,7 +311,7 @@
         ],
         "responses": {
           "200": {
-            "description": "List of departments",
+            "description": "Список департаментов",
             "content": {
               "application/json": {
                 "schema": {
@@ -269,7 +327,7 @@
       },
       "post": {
         "tags": ["Departments"],
-        "summary": "Create new department",
+        "summary": "Создать новый отдел",
         "operationId": "createDepartment",
         "security": [
           {
@@ -288,7 +346,7 @@
         },
         "responses": {
           "201": {
-            "description": "Department created",
+            "description": "Департамент создан",
             "content": {
               "application/json": {
                 "schema": {
@@ -481,113 +539,70 @@
         }
       }
     },
-    "/events": {
+    "/activities/types": {
       "get": {
-        "tags": ["Events"],
-        "summary": "Получить события календаря",
-        "operationId": "getEvents",
+        "tags": ["Activities"],
+        "summary": "Получить список типов занятий",
+        "operationId": "getActivityTypes",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
         "responses": {
           "200": {
-            "description": "Список событий",
+            "description": "Список типов занятий",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/CalendarEvent"
+                    "$ref": "#/components/schemas/ActivityType"
                   }
                 }
               }
             }
           }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ]
-      },
-      "post": {
-        "tags": ["Events"],
-        "summary": "Создать события для пользователей",
-        "operationId": "createEventsForUsers",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateEventRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "События успешно созданы",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/CalendarEvent"
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Ошибка запроса",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ]
+        }
       }
     },
-    "/events/{id}": {
-      "delete": {
-        "tags": ["Events"],
-        "summary": "Удалить событие по ID",
-        "operationId": "deleteEvent",
+    "/activities/types/{id}/classes": {
+      "get": {
+        "tags": ["Activities"],
+        "summary": "Получить классы занятий по типу",
+        "operationId": "getActivityClassesByType",
         "parameters": [
           {
             "name": "id",
             "in": "path",
             "required": true,
-            "description": "ID события",
+            "description": "ID типа занятия",
             "schema": {
               "type": "integer"
             }
           }
         ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
         "responses": {
           "200": {
-            "description": "Событие удалено",
+            "description": "Список классов занятий",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string",
-                      "example": "Событие успешно удалено"
-                    }
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ActivityClass"
                   }
                 }
               }
             }
           },
           "404": {
-            "description": "Событие не найдено",
+            "description": "Тип занятия не найден",
             "content": {
               "application/json": {
                 "schema": {
@@ -596,12 +611,7 @@
               }
             }
           }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ]
+        }
       }
     },
     "/": {

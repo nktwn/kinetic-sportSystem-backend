@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { authenticate } = require('../middleware/authMiddleware'); 
 
 const activityData = [
   {
@@ -24,7 +25,7 @@ const activityData = [
   }
 ];
 
-router.get('/types', (req, res) => {
+router.get('/types', authenticate, (req, res) => {
   const types = activityData.map((item, index) => ({
     id: index + 1,
     name: item.type
@@ -32,7 +33,7 @@ router.get('/types', (req, res) => {
   res.json(types);
 });
 
-router.get('/types/:id/classes', (req, res) => {
+router.get('/types/:id/classes', authenticate, (req, res) => {
   const typeIndex = parseInt(req.params.id, 10) - 1;
   const typeEntry = activityData[typeIndex];
 
@@ -49,6 +50,6 @@ router.get('/types/:id/classes', (req, res) => {
 });
 
 module.exports = {
-    router,
-    activityData 
-  };
+  router,
+  activityData 
+};
