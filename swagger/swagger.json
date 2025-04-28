@@ -246,6 +246,11 @@
         "tags": ["Departments"],
         "summary": "Get all departments",
         "operationId": "getAllDepartments",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "List of departments",
@@ -266,6 +271,11 @@
         "tags": ["Departments"],
         "summary": "Create new department",
         "operationId": "createDepartment",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -305,6 +315,11 @@
             }
           }
         ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Department details",
@@ -340,6 +355,11 @@
             "schema": {
               "type": "integer"
             }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
           }
         ],
         "requestBody": {
@@ -379,6 +399,11 @@
             }
           }
         ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Department deleted",
@@ -411,7 +436,7 @@
     "/departments/{id}/users": {
       "get": {
         "tags": ["Departments"],
-        "summary": "Получить пользователей департамента",
+        "summary": "Get users by department ID",
         "operationId": "getUsersByDepartment",
         "parameters": [
           {
@@ -422,6 +447,11 @@
             "schema": {
               "type": "integer"
             }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
           }
         ],
         "responses": {

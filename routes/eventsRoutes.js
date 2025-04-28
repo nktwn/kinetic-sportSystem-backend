@@ -2,8 +2,10 @@ const express = require('express');
 const Event = require('../models/event');
 const { activityData } = require('./activitiesRoutes');
 const { authenticate } = require('../middleware/authMiddleware');
+const User = require('../models/user');
 const router = express.Router();
 
+// Получение событий
 router.get('/', authenticate, async (req, res) => {
   try {
     let events;
@@ -30,9 +32,7 @@ router.get('/', authenticate, async (req, res) => {
   }
 });
 
-
-const User = require('../models/user');
-
+// Создание события
 router.post('/', authenticate, async (req, res) => {
   const { start, title, location, type, class: cls, userIds } = req.body;
 
@@ -83,9 +83,13 @@ router.post('/', authenticate, async (req, res) => {
   }
 });
 
-
+// Удаление события
 router.delete('/:id', authenticate, async (req, res) => {
   const eventId = req.params.id;
+
+  if (!['admin', 'hr'].includes(req.user.role)) {
+    return res.status(403).json({ message: 'Только HR или Admin могут удалять события' });
+  }
 
   try {
     const event = await Event.findByPk(eventId);
@@ -96,30 +100,11 @@ router.delete('/:id', authenticate, async (req, res) => {
 
     await event.destroy();
     res.json({ message: 'Событие успешно удалено' });
+
   } catch (error) {
-    console.error(error);
+    console.error('Ошибка при удалении события:', error);
     res.status(500).json({ message: 'Ошибка при удалении события' });
   }
 });
 
-  
-
-  router.delete('/:id', async (req, res) => {
-    const eventId = req.params.id;
-  
-    try {
-      const event = await Event.findByPk(eventId);
-  
-      if (!event) {
-        return res.status(404).json({ message: 'Зачёт не найден' });
-      }
-  
-      await event.destroy();
-      res.json({ message: 'Зачёт успешно удален' });
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Ошибка при удалении зачёта' });
-    }
-  });
-  
-  module.exports = router;
+module.exports = router;

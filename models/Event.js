@@ -23,7 +23,7 @@ const Event = sequelize.define('Event', {
     allowNull: false
   },
   userIds: {
-    type: DataTypes.TEXT, // Мы будем хранить JSON
+    type: DataTypes.TEXT,
     allowNull: false,
     get() {
       const rawValue = this.getDataValue('userIds');

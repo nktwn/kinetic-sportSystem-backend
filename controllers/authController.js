@@ -5,7 +5,7 @@ const Department = require('../models/department');
 const dotenv = require('dotenv');
 dotenv.config();
 
-
+// Регистрация брат
 exports.register = async (req, res) => {
   const { username, password, iin, full_name, rank, role, departmentId } = req.body;
 
@@ -36,15 +36,18 @@ exports.register = async (req, res) => {
   }
 };
 
+
+
+// Логин брат
 exports.login = async (req, res) => {
   const { username, password } = req.body;
 
   try {
     const user = await User.findOne({ where: { username } });
-    if (!user) return res.status(404).json({ message: 'User not found' });
+    if (!user) return res.status(404).json({ message: 'Пользователь не найден' });
 
     const validPassword = await bcrypt.compare(password, user.password);
-    if (!validPassword) return res.status(401).json({ message: 'Invalid credentials' });
+    if (!validPassword) return res.status(401).json({ message: 'Неверные учетные данные' });
 
     const token = jwt.sign({ id: user.id, username: user.username, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
@@ -55,24 +58,15 @@ exports.login = async (req, res) => {
     });
 
   } catch (error) {
-    res.status(500).json({ message: 'Error logging in' });
+    res.status(500).json({ message: 'Ошибка при входе в систему' });
   }
 };
-  
+
+
+// Получение текущего пользователя брат
 exports.getCurrentUser = async (req, res) => {
-  const token = req.headers.authorization?.split(' ')[1]; 
-
-  if (!token) {
-    return res.status(401).json({ message: 'Token is missing' });
-  }
-
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findByPk(decoded.id);
-
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
+    const user = req.user;
 
     res.json({
       id: user.id,
@@ -82,69 +76,33 @@ exports.getCurrentUser = async (req, res) => {
       role: user.role
     });
   } catch (error) {
-    res.status(403).json({ message: 'Invalid token' });
-  }
-};
-
-exports.getCurrentUser = async (req, res) => {
-  const token = req.headers.authorization?.split(' ')[1];
-
-  if (!token) {
-    return res.status(401).json({ message: 'Token is missing' });
-  }
-
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET); 
-    const user = await User.findByPk(decoded.id);
-
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    res.json({
-      id: user.id,
-      username: user.username,
-      full_name: user.full_name,
-      rank: user.rank,
-      role: user.role
-    });
-  } catch (error) {
-    res.status(403).json({ message: 'Invalid token' });
+    console.error(error);
+    res.status(500).json({ message: 'Ошибка при получении пользователя' });
   }
 };
 
 
+
+
+// Обновление роли брат
 exports.updateUserRole = async (req, res) => {
-  const token = req.headers.authorization?.split(' ')[1];
-
-  if (!token) {
-    return res.status(401).json({ message: 'Token is missing' });
-  }
-
   const { new_role } = req.query;
 
   if (!new_role || !['admin', 'hr', 'employee'].includes(new_role)) {
-    return res.status(400).json({ message: 'Invalid role. Valid roles are: admin, hr, employee' });
+    return res.status(400).json({ message: 'Недопустимая роль. Возможные роли: admin, hr, employee' });
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findByPk(decoded.id);
+    const user = req.user;
 
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    if (user.role !== 'admin' && user.id !== decoded.id) {
-      return res.status(403).json({ message: 'You do not have permission to update this role' });
-    }
 
     user.role = new_role;
-    await user.save(); 
+    await user.save();
 
-    res.json({ message: `Role updated to ${new_role}` });
+    res.json({ message: `Роль обновлена на ${new_role}` });
 
   } catch (error) {
-    res.status(403).json({ message: 'Invalid token' });
+    console.error(error);
+    res.status(500).json({ message: 'Ошибка при обновлении роли' });
   }
 };

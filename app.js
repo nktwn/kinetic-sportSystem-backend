@@ -7,12 +7,9 @@ const http = require('http');
 const socketIo = require('socket.io');  
 const sequelize = require('./config/db');
 const departmentUsersRoutes = require('./routes/departmentUsersRoutes');
-
 const User = require('./models/user.js');
 const Department = require('./models/department');
-
 const Event = require('./models/event.js');
-
 const authRoutes = require('./routes/authRoutes');
 const { router: activitiesRoutes } = require('./routes/activitiesRoutes');
 const eventsRoutes = require('./routes/eventsRoutes');
