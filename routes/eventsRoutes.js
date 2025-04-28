@@ -10,7 +10,6 @@ router.get('/', async (req, res) => {
 });
 
 
-// POST /events
 router.post('/', async (req, res) => {
   const { start, title, location, type, class: cls, userIds } = req.body;
 
@@ -19,13 +18,11 @@ router.post('/', async (req, res) => {
   }
 
   try {
-    // Проверяем, существует ли тип активности
     const activityType = activityData.find(item => item.type === type);
     if (!activityType) {
       return res.status(400).json({ message: `Тип активности "${type}" не существует` });
     }
 
-    // Проверяем, существует ли класс в этом типе
     if (!activityType.classes.includes(cls)) {
       return res.status(400).json({ message: `Класс "${cls}" не относится к типу "${type}"` });
     }
@@ -34,7 +31,6 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ message: 'Не выбраны пользователи для создания событий' });
     }
 
-    // Проверяем пользователей
     const users = await User.findAll({
       where: { id: userIds }
     });
@@ -43,7 +39,6 @@ router.post('/', async (req, res) => {
       return res.status(404).json({ message: 'Один или несколько пользователей не найдены' });
     }
 
-    // Создаем события для всех выбранных пользователей
     const createdEvents = await Promise.all(
       users.map(user => Event.create({
         title,

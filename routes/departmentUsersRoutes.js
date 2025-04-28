@@ -2,7 +2,6 @@ const express = require('express');
 const User = require('../models/user');
 const router = express.Router();
 
-// Получить пользователей департамента
 router.get('/departments/:id/users', async (req, res) => {
   const departmentId = req.params.id;
 
