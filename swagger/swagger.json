@@ -298,6 +298,52 @@
         }
       }
     },
+    "/events/{id}": {
+      "delete": {
+        "tags": ["Events"],
+        "summary": "Удалить событие по ID",
+        "operationId": "deleteEvent",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID события",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Событие удалено",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Событие успешно удалено"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Событие не найдено",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/": {
       "get": {
         "summary": "Root",

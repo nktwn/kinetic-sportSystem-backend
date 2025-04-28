@@ -35,7 +35,26 @@ router.post('/', async (req, res) => {
       res.status(201).json(newEvent);
     } catch (error) {
       console.error(error);
-      res.status(500).json({ message: 'Ошибка при создании события' });
+      res.status(500).json({ message: 'Ошибка при создании зачёта' });
+    }
+  });
+  
+
+  router.delete('/:id', async (req, res) => {
+    const eventId = req.params.id;
+  
+    try {
+      const event = await Event.findByPk(eventId);
+  
+      if (!event) {
+        return res.status(404).json({ message: 'Зачёт не найден' });
+      }
+  
+      await event.destroy();
+      res.json({ message: 'Зачёт успешно удален' });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Ошибка при удалении зачёта' });
     }
   });
   
