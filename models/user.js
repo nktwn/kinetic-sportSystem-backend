@@ -13,7 +13,7 @@ const User = sequelize.define('User', {
   iin: {
     type: DataTypes.STRING,
     allowNull: false,
-    unique: true, // <-- Уникальный ИИН
+    unique: true,
   },
   full_name: {
     type: DataTypes.STRING,

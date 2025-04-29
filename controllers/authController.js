@@ -41,14 +41,12 @@ exports.register = async (req, res) => {
         return res.status(400).json({ message: 'Указанный департамент не найден' });
       }
 
-      // Если регистрируем АДМИНА, проверяем есть ли уже админ
       if (role === 'admin') {
         if (department.adminId) {
           return res.status(400).json({ message: 'У департамента уже назначен администратор' });
         }
       }
     } else if (role === 'admin') {
-      // Для админа департамент обязателен
       return res.status(400).json({ message: 'Администратор должен быть привязан к департаменту' });
     }
 
@@ -65,7 +63,6 @@ exports.register = async (req, res) => {
       departmentId: departmentId ?? null
     });
 
-    // Если зарегистрировали админа, обновляем adminId в департаменте
     if (role === 'admin' && departmentId) {
       const department = await Department.findByPk(departmentId);
       department.adminId = user.id;
@@ -79,8 +76,6 @@ exports.register = async (req, res) => {
   }
 };
 
-
-// Логин брат
 exports.login = async (req, res) => {
   const { username, password } = req.body;
 
@@ -104,8 +99,6 @@ exports.login = async (req, res) => {
   }
 };
 
-
-// Получение текущего пользователя брат
 exports.getCurrentUser = async (req, res) => {
   try {
     const user = req.user;
@@ -123,10 +116,6 @@ exports.getCurrentUser = async (req, res) => {
   }
 };
 
-
-
-
-// Обновление роли брат
 exports.updateUserRole = async (req, res) => {
   const { new_role } = req.query;
 
@@ -137,7 +126,6 @@ exports.updateUserRole = async (req, res) => {
   try {
     const user = req.user;
 
-    // Если пытаемся обновить на admin
     if (new_role === 'admin') {
       if (!user.departmentId) {
         return res.status(400).json({ message: 'Администратор должен быть привязан к департаменту' });
@@ -153,12 +141,10 @@ exports.updateUserRole = async (req, res) => {
         return res.status(400).json({ message: 'У департамента уже назначен другой администратор' });
       }
 
-      // Обновляем adminId если всё ок
       department.adminId = user.id;
       await department.save();
     }
 
-    // Если пользователь был админом и меняет роль на другую — снять его из adminId департамента
     if (user.role === 'admin' && new_role !== 'admin') {
       const department = await Department.findByPk(user.departmentId);
       if (department && department.adminId === user.id) {
@@ -167,7 +153,6 @@ exports.updateUserRole = async (req, res) => {
       }
     }
 
-    // Обновляем роль пользователя
     user.role = new_role;
     await user.save();
 

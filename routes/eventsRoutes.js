@@ -8,8 +8,6 @@ const Department = require('../models/department');
 const { Sequelize } = require('sequelize');
 
 
-
-// Получение событий брат 
 router.get('/', authenticate, async (req, res) => {
   try {
     let events;
@@ -48,7 +46,6 @@ router.post('/', authenticate, async (req, res) => {
   }
 
   try {
-    // Найти пользователей
     const users = await User.findAll({
       where: { id: userIds }
     });
@@ -57,7 +54,6 @@ router.post('/', authenticate, async (req, res) => {
       return res.status(404).json({ message: 'Один или несколько пользователей не найдены' });
     }
 
-    // Проверка что конец позже начала
     const start = new Date(startTime);
     const end = new Date(endTime);
     if (start >= end) {
@@ -66,7 +62,7 @@ router.post('/', authenticate, async (req, res) => {
 
 
     if (req.user.role === 'admin') {
-      // Проверяем, что все пользователи из департамента админа
+
       const adminDepartmentId = req.user.departmentId;
       if (!adminDepartmentId) {
         return res.status(400).json({ message: 'У админа не привязан департамент' });
@@ -77,9 +73,15 @@ router.post('/', authenticate, async (req, res) => {
         return res.status(400).json({ message: 'Админ может создавать события только для работников своего департамента' });
       }
     }
-    
 
-    // Проверить, что все из одного департамента
+    const activityType = activityData.find(item => item.type === type);
+    if (!activityType) {
+      return res.status(400).json({ message: `Тип активности "${type}" не существует` });
+    }
+    if (!activityType.classes.includes(cls)) {
+      return res.status(400).json({ message: `Класс "${cls}" не относится к типу "${type}"` });
+    }
+
     const uniqueDepartmentIds = [...new Set(users.map(u => u.departmentId))];
     if (uniqueDepartmentIds.length !== 1) {
       return res.status(400).json({ message: 'Все участники должны быть из одного департамента' });
@@ -87,7 +89,6 @@ router.post('/', authenticate, async (req, res) => {
 
     const departmentId = uniqueDepartmentIds[0];
 
-    // Получить локацию департамента
     const department = await Department.findByPk(departmentId);
     if (!department) {
       return res.status(404).json({ message: 'Департамент не найден' });
@@ -95,7 +96,6 @@ router.post('/', authenticate, async (req, res) => {
 
     const location = department.location;
 
-    // Проверить наличие других событий в этой локации
     const overlappingEvents = await Event.findOne({
       where: {
         location,
@@ -143,8 +143,6 @@ router.post('/', authenticate, async (req, res) => {
 });
 
 
-
-// Удаление события брат
 router.delete('/:id', authenticate, async (req, res) => {
   const eventId = req.params.id;
 
@@ -159,7 +157,6 @@ router.delete('/:id', authenticate, async (req, res) => {
       return res.status(404).json({ message: 'Событие не найдено' });
     }
 
-    // Если admin - проверяем принадлежность события его департаменту
     if (req.user.role === 'admin' && event.departmentId !== req.user.departmentId) {
       return res.status(403).json({ message: 'Админ может удалять только события своего департамента' });
     }
@@ -174,7 +171,6 @@ router.delete('/:id', authenticate, async (req, res) => {
   }
 });
 
-// Обновление события брат
 router.put('/:id', authenticate, async (req, res) => {
   const eventId = req.params.id;
   const { startTime, endTime, title, type, class: cls, userIds } = req.body;
@@ -190,10 +186,23 @@ router.put('/:id', authenticate, async (req, res) => {
       return res.status(404).json({ message: 'Событие не найдено' });
     }
 
-    // Если admin - проверяем принадлежность события его департаменту
     if (req.user.role === 'admin' && event.departmentId !== req.user.departmentId) {
       return res.status(403).json({ message: 'Админ может редактировать только события своего департамента' });
     }
+
+    if (type || cls) {
+      const effectiveType = type || event.type;
+      const effectiveClass = cls || event.class;
+
+      const activityType = activityData.find(item => item.type === effectiveType);
+      if (!activityType) {
+        return res.status(400).json({ message: `Тип активности "${effectiveType}" не существует` });
+      }
+      if (!activityType.classes.includes(effectiveClass)) {
+        return res.status(400).json({ message: `Класс "${effectiveClass}" не относится к типу "${effectiveType}"` });
+      }
+    }
+
 
     if (type || cls) {
       const activityType = activityData.find(item => item.type === (type || event.type));

@@ -23,11 +23,10 @@ const Department = sequelize.define('Department', {
   },
   location: {
     type: DataTypes.STRING,
-    allowNull: true, // Локация может быть пустой при создании
+    allowNull: true,
   }
 });
 
-// Связи:
 Department.belongsTo(User, { as: 'admin', foreignKey: 'adminId' });
 User.hasOne(Department, { foreignKey: 'adminId', as: 'adminDepartment' });
 
