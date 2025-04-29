@@ -13,6 +13,7 @@ const User = sequelize.define('User', {
   iin: {
     type: DataTypes.STRING,
     allowNull: false,
+    unique: true, // <-- Уникальный ИИН
   },
   full_name: {
     type: DataTypes.STRING,
@@ -21,6 +22,15 @@ const User = sequelize.define('User', {
   rank: {
     type: DataTypes.STRING,
     allowNull: false,
+  },
+  position: {
+    type: DataTypes.ENUM(
+      'Рядовой', 'Ефрейтор', 'Младший сержант', 'Сержант', 'Старший сержант', 'Старшина',
+      'Сержант третьего класса', 'Сержант второго класса', 'Сержант первого класса',
+      'Штаб-сержант', 'Мастер-сержант', 'Лейтенант', 'Старший лейтенант', 'Капитан', 'Майор',
+      'Подполковник', 'Полковник', 'Генерал-майор', 'Генерал-лейтенант', 'Генерал-полковник', 'Генерал армии'
+    ),
+    allowNull: false
   },
   role: {
     type: DataTypes.STRING,

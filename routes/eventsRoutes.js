@@ -4,6 +4,10 @@ const { activityData } = require('./activitiesRoutes');
 const { authenticate } = require('../middleware/authMiddleware');
 const User = require('../models/user');
 const router = express.Router();
+const Department = require('../models/department');
+const { Sequelize } = require('sequelize');
+
+
 
 // Получение событий брат 
 router.get('/', authenticate, async (req, res) => {
@@ -11,9 +15,9 @@ router.get('/', authenticate, async (req, res) => {
     let events;
 
     if (['admin', 'hr'].includes(req.user.role)) {
-      events = await Event.findAll({ where: { status: 'approved' } });
+      events = await Event.findAll();
     } else if (req.user.role === 'employee') {
-      const allEvents = await Event.findAll({ where: { status: 'approved' } });
+      const allEvents = await Event.findAll();
       const userId = req.user.id;
 
       events = allEvents.filter(event => {
@@ -32,11 +36,10 @@ router.get('/', authenticate, async (req, res) => {
   }
 });
 
-// Создание события брат
 router.post('/', authenticate, async (req, res) => {
-  const { start, title, location, type, class: cls, userIds } = req.body;
+  const { startTime, endTime, title, type, class: cls, userIds } = req.body;
 
-  if (!start || !title || !location || !type || !cls || !Array.isArray(userIds)) {
+  if (!startTime || !endTime || !title || !type || !cls || !Array.isArray(userIds)) {
     return res.status(400).json({ message: "Все поля обязательны и userIds должен быть массивом" });
   }
 
@@ -45,19 +48,7 @@ router.post('/', authenticate, async (req, res) => {
   }
 
   try {
-    const activityType = activityData.find(item => item.type === type);
-    if (!activityType) {
-      return res.status(400).json({ message: `Тип активности "${type}" не существует` });
-    }
-
-    if (!activityType.classes.includes(cls)) {
-      return res.status(400).json({ message: `Класс "${cls}" не относится к типу "${type}"` });
-    }
-
-    if (userIds.length === 0) {
-      return res.status(400).json({ message: 'Выберите хотя бы одного пользователя' });
-    }
-
+    // Найти пользователей
     const users = await User.findAll({
       where: { id: userIds }
     });
@@ -66,20 +57,82 @@ router.post('/', authenticate, async (req, res) => {
       return res.status(404).json({ message: 'Один или несколько пользователей не найдены' });
     }
 
+    // Проверка что конец позже начала
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+    if (start >= end) {
+      return res.status(400).json({ message: 'Время окончания должно быть позже времени начала' });
+    }
+
+
+    if (req.user.role === 'admin') {
+      // Проверяем, что все пользователи из департамента админа
+      const adminDepartmentId = req.user.departmentId;
+      if (!adminDepartmentId) {
+        return res.status(400).json({ message: 'У админа не привязан департамент' });
+      }
+    
+      const usersFromOtherDepartments = users.filter(user => user.departmentId !== adminDepartmentId);
+      if (usersFromOtherDepartments.length > 0) {
+        return res.status(400).json({ message: 'Админ может создавать события только для работников своего департамента' });
+      }
+    }
+    
+
+    // Проверить, что все из одного департамента
+    const uniqueDepartmentIds = [...new Set(users.map(u => u.departmentId))];
+    if (uniqueDepartmentIds.length !== 1) {
+      return res.status(400).json({ message: 'Все участники должны быть из одного департамента' });
+    }
+
+    const departmentId = uniqueDepartmentIds[0];
+
+    // Получить локацию департамента
+    const department = await Department.findByPk(departmentId);
+    if (!department) {
+      return res.status(404).json({ message: 'Департамент не найден' });
+    }
+
+    const location = department.location;
+
+    // Проверить наличие других событий в этой локации
+    const overlappingEvents = await Event.findOne({
+      where: {
+        location,
+        [Sequelize.Op.or]: [
+          {
+            startTime: { [Sequelize.Op.between]: [startTime, endTime] }
+          },
+          {
+            endTime: { [Sequelize.Op.between]: [startTime, endTime] }
+          },
+          {
+            [Sequelize.Op.and]: [
+              { startTime: { [Sequelize.Op.lte]: startTime } },
+              { endTime: { [Sequelize.Op.gte]: endTime } }
+            ]
+          }
+        ]
+      }
+    });
+
+    if (overlappingEvents) {
+      return res.status(400).json({ message: 'В выбранное время в этой локации уже запланировано другое событие' });
+    }
+
     const event = await Event.create({
       title,
-      start,
+      startTime,
+      endTime,
       location,
       type,
       class: cls,
       userIds: JSON.stringify(userIds),
-      status: req.user.role === 'hr' ? 'pending' : 'approved'
+      departmentId
     });
 
-    res.status(req.user.role === 'hr' ? 202 : 201).json({
-      message: req.user.role === 'hr' 
-        ? 'Событие отправлено на одобрение администратору' 
-        : 'Событие успешно создано',
+    res.status(201).json({
+      message: 'Событие успешно создано',
       event
     });
 
@@ -88,6 +141,7 @@ router.post('/', authenticate, async (req, res) => {
     res.status(500).json({ message: 'Ошибка при создании события' });
   }
 });
+
 
 
 // Удаление события брат
@@ -105,6 +159,11 @@ router.delete('/:id', authenticate, async (req, res) => {
       return res.status(404).json({ message: 'Событие не найдено' });
     }
 
+    // Если admin - проверяем принадлежность события его департаменту
+    if (req.user.role === 'admin' && event.departmentId !== req.user.departmentId) {
+      return res.status(403).json({ message: 'Админ может удалять только события своего департамента' });
+    }
+
     await event.destroy();
 
     res.json({ message: 'Событие успешно удалено' });
@@ -118,7 +177,7 @@ router.delete('/:id', authenticate, async (req, res) => {
 // Обновление события брат
 router.put('/:id', authenticate, async (req, res) => {
   const eventId = req.params.id;
-  const { start, title, location, type, class: cls, userIds } = req.body;
+  const { startTime, endTime, title, type, class: cls, userIds } = req.body;
 
   if (!['admin', 'hr'].includes(req.user.role)) {
     return res.status(403).json({ message: 'Только HR или Admin могут редактировать события' });
@@ -131,6 +190,11 @@ router.put('/:id', authenticate, async (req, res) => {
       return res.status(404).json({ message: 'Событие не найдено' });
     }
 
+    // Если admin - проверяем принадлежность события его департаменту
+    if (req.user.role === 'admin' && event.departmentId !== req.user.departmentId) {
+      return res.status(403).json({ message: 'Админ может редактировать только события своего департамента' });
+    }
+
     if (type || cls) {
       const activityType = activityData.find(item => item.type === (type || event.type));
       if (!activityType) {
@@ -141,13 +205,21 @@ router.put('/:id', authenticate, async (req, res) => {
       }
     }
 
+    if (startTime && endTime) {
+      const start = new Date(startTime);
+      const end = new Date(endTime);
+      if (start >= end) {
+        return res.status(400).json({ message: 'Время окончания должно быть позже времени начала' });
+      }
+    }
+
     if (userIds && (!Array.isArray(userIds) || userIds.length === 0)) {
       return res.status(400).json({ message: 'userIds должен быть массивом и не пустым' });
     }
 
     event.title = title || event.title;
-    event.start = start || event.start;
-    event.location = location || event.location;
+    event.startTime = startTime || event.startTime;
+    event.endTime = endTime || event.endTime;
     event.type = type || event.type;
     event.class = cls || event.class;
     if (userIds) {
@@ -166,6 +238,7 @@ router.put('/:id', authenticate, async (req, res) => {
     res.status(500).json({ message: 'Ошибка при обновлении события' });
   }
 });
+
 
 
 

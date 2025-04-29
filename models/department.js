@@ -12,12 +12,24 @@ const Department = sequelize.define('Department', {
     type: DataTypes.STRING,
     allowNull: true,
   },
-  status: {
-    type: DataTypes.ENUM('pending', 'approved', 'rejected'),
-    allowNull: false,
-    defaultValue: 'pending'
+  adminId: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    unique: true,
+    references: {
+      model: 'Users',
+      key: 'id'
+    }
+  },
+  location: {
+    type: DataTypes.STRING,
+    allowNull: true, // Локация может быть пустой при создании
   }
 });
+
+// Связи:
+Department.belongsTo(User, { as: 'admin', foreignKey: 'adminId' });
+User.hasOne(Department, { foreignKey: 'adminId', as: 'adminDepartment' });
 
 Department.hasMany(User, { foreignKey: 'departmentId' });
 User.belongsTo(Department, { foreignKey: 'departmentId' });

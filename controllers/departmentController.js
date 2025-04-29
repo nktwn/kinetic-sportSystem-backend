@@ -1,31 +1,25 @@
 const Department = require('../models/department');
 const User = require('../models/user');
 
-const checkAdminOrHR = (user) => {
-  return user.role === 'admin' || user.role === 'hr';
+// Проверка: только админ с id === 1
+const isMainAdmin = (user) => {
+  return user.id === 1;
 };
 
-// Создание Департамента брат
+// Создание департамента брат
 exports.createDepartment = async (req, res) => {
   const { name, description } = req.body;
   const user = req.user;
 
-  if (!checkAdminOrHR(user)) {
-    return res.status(403).json({ message: 'Недостаточно прав для создания департамента' });
+  if (!isMainAdmin(user)) {
+    return res.status(403).json({ message: 'Только главный админ может создавать департаменты' });
   }
 
   try {
     const department = await Department.create({
       name,
-      description,
-      status: user.role === 'hr' ? 'pending' : 'approved'
+      description
     });
-
-    if (user.role === 'hr') {
-      return res.status(202).json({
-        message: 'Запрос на создание департамента отправлен на одобрение администратору'
-      });
-    }
 
     res.status(201).json(department);
 
@@ -35,16 +29,10 @@ exports.createDepartment = async (req, res) => {
   }
 };
 
-
-
 // Получение всех департаментов брат
 exports.getAllDepartments = async (req, res) => {
-  if (!checkAdminOrHR(req.user)) {
-    return res.status(403).json({ message: 'Недостаточно прав для просмотра департаментов' });
-  }
-
   try {
-    const departments = await Department.findAll({ where: { status: 'approved' } });
+    const departments = await Department.findAll();
     res.json(departments);
   } catch (error) {
     console.error(error);
@@ -52,13 +40,9 @@ exports.getAllDepartments = async (req, res) => {
   }
 };
 
-// Получение Департамента по ID брат
+// Получение департамента по ID брат
 exports.getDepartmentById = async (req, res) => {
   const { id } = req.params;
-
-  if (!checkAdminOrHR(req.user)) {
-    return res.status(403).json({ message: 'Недостаточно прав для просмотра департамента' });
-  }
 
   try {
     const department = await Department.findByPk(id, {
@@ -76,14 +60,14 @@ exports.getDepartmentById = async (req, res) => {
   }
 };
 
-// Редактирование Департамента брат
+// Редактирование департамента брат
 exports.updateDepartment = async (req, res) => {
   const { id } = req.params;
   const { name, description } = req.body;
   const user = req.user;
 
-  if (!checkAdminOrHR(user)) {
-    return res.status(403).json({ message: 'Недостаточно прав для редактирования департамента' });
+  if (!isMainAdmin(user)) {
+    return res.status(403).json({ message: 'Только главный админ может редактировать департаменты' });
   }
 
   try {
@@ -108,14 +92,13 @@ exports.updateDepartment = async (req, res) => {
   }
 };
 
-
-// Удаление Департамента брат
+// Удаление департамента брат
 exports.deleteDepartment = async (req, res) => {
   const { id } = req.params;
   const user = req.user;
 
-  if (!checkAdminOrHR(user)) {
-    return res.status(403).json({ message: 'Недостаточно прав для удаления департамента' });
+  if (!isMainAdmin(user)) {
+    return res.status(403).json({ message: 'Только главный админ может удалять департаменты' });
   }
 
   try {

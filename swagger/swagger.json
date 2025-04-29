@@ -686,132 +686,6 @@
         }
       }
     },
-    "/admin/requests": {
-      "get": {
-        "tags": ["Admin"],
-        "summary": "Получить все заявки на одобрение",
-        "operationId": "getPendingRequests",
-        "security": [
-          { "BearerAuth": [] }
-        ],
-        "responses": {
-          "200": {
-            "description": "Список заявок",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "departments": {
-                      "type": "array",
-                      "items": { "$ref": "#/components/schemas/Department" }
-                    },
-                    "events": {
-                      "type": "array",
-                      "items": { "$ref": "#/components/schemas/CalendarEvent" }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Нет прав",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error" }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/admin/requests/{type}/{id}/evaluate": {
-      "put": {
-        "tags": ["Admin"],
-        "summary": "Оценить заявку (одобрить или отклонить)",
-        "operationId": "evaluateRequest",
-        "parameters": [
-          {
-            "name": "type",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "enum": ["department", "event"],
-              "example": "event"
-            },
-            "description": "Тип заявки: департамент или событие"
-          },
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "example": 1
-            },
-            "description": "ID департамента или события"
-          },
-          {
-            "name": "action",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "enum": ["approve", "reject"],
-              "example": "approve"
-            },
-            "description": "Действие: одобрить или отклонить"
-          }
-        ],
-        "security": [
-          { "BearerAuth": [] }
-        ],
-        "responses": {
-          "200": {
-            "description": "Успешный ответ",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string",
-                      "example": "event одобрен"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Запись не найдена",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error" }
-              }
-            }
-          },
-          "400": {
-            "description": "Неверный ввод",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error" }
-              }
-            }
-          },
-          "403": {
-            "description": "Нет прав",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error" }
-              }
-            }
-          }
-        }
-      }
-    },
     "/": {
       "get": {
         "summary": "Root",
@@ -893,10 +767,11 @@
           "iin": { "type": "string" },
           "full_name": { "type": "string" },
           "rank": { "type": "string" },
+          "position": { "type": "string" },
           "role": { "type": "string" },
           "departmentId": { "type": "integer", "nullable": true }
         },
-        "required": ["username", "password", "iin", "full_name", "rank", "role"]
+        "required": ["username", "password", "iin", "full_name", "rank", "position", "role"]
       },
       "User": {
         "type": "object",
@@ -988,17 +863,14 @@
         "properties": {
           "id": { "type": "integer", "example": 2 },
           "title": { "type": "string", "example": "Timed event" },
-          "start": { "type": "string", "format": "date-time", "example": "2025-04-25T12:00:00" },
-          "location": { "type": "string", "example": "Astana" },
-          "type": { "type": "string", "example": "Сила" },
-          "class": { "type": "string", "example": "Отжимания" },
-          "status": {
-            "type": "string",
-            "enum": ["pending", "approved", "rejected"],
-            "example": "approved"
-          }
+          "startTime": { "type": "string", "format": "date-time", "example": "2025-04-25T12:00:00", "description": "Дата и время начала" },
+          "endTime": { "type": "string", "format": "date-time", "example": "2025-04-25T13:00:00", "description": "Дата и время окончания" },
+          "location": { "type": "string", "example": "Astana", "description": "Локация события" },
+          "type": { "type": "string", "example": "Сила", "description": "Тип активности" },
+          "class": { "type": "string", "example": "Отжимания", "description": "Класс активности" },
+          "departmentId": { "type": "integer", "example": 1, "description": "ID департамента" }
         },
-        "required": ["title", "start", "location", "type", "class", "status"]
+        "required": ["title", "startTime", "endTime", "location", "type", "class", "departmentId"]
       },
       "UserShort": {
         "type": "object",
@@ -1013,33 +885,15 @@
       "UpdateEventRequest": {
         "type": "object",
         "properties": {
-          "start": {
-            "type": "string",
-            "format": "date-time",
-            "example": "2025-05-01T09:00:00"
-          },
-          "title": {
-            "type": "string",
-            "example": "Групповая тренировка - обновление"
-          },
-          "location": {
-            "type": "string",
-            "example": "Astana Arena"
-          },
-          "type": {
-            "type": "string",
-            "example": "Сила"
-          },
-          "class": {
-            "type": "string",
-            "example": "Отжимания"
-          },
+          "startTime": { "type": "string", "format": "date-time", "example": "2025-05-01T09:00:00", "description": "Новое время начала" },
+          "endTime": { "type": "string", "format": "date-time", "example": "2025-05-01T10:00:00", "description": "Новое время окончания" },
+          "title": { "type": "string", "example": "Обновленная тренировка", "description": "Новое название события" },
+          "type": { "type": "string", "example": "Сила", "description": "Тип активности" },
+          "class": { "type": "string", "example": "Отжимания", "description": "Класс активности" },
           "userIds": {
             "type": "array",
-            "items": {
-              "type": "integer",
-              "example": 3
-            }
+            "items": { "type": "integer", "example": 3 },
+            "description": "Обновленный список ID пользователей"
           }
         },
         "description": "Поля для обновления события (все поля необязательны)"
@@ -1047,38 +901,41 @@
       "CreateEventRequest": {
         "type": "object",
         "properties": {
-          "start": {
-            "type": "string",
-            "format": "date-time",
-            "example": "2025-05-01T09:00:00"
+          "startTime": { 
+            "type": "string", 
+            "format": "date-time", 
+            "example": "2025-05-01T09:00:00",
+            "description": "Время начала события"
           },
-          "title": {
-            "type": "string",
-            "example": "Групповая тренировка"
+          "endTime": { 
+            "type": "string", 
+            "format": "date-time", 
+            "example": "2025-05-01T10:00:00",
+            "description": "Время окончания события"
           },
-          "location": {
-            "type": "string",
-            "example": "Astana"
+          "title": { 
+            "type": "string", 
+            "example": "Групповая тренировка",
+            "description": "Название события"
           },
-          "type": {
-            "type": "string",
-            "example": "Сила"
+          "type": { 
+            "type": "string", 
+            "example": "Сила",
+            "description": "Тип активности"
           },
-          "class": {
-            "type": "string",
-            "example": "Отжимания"
+          "class": { 
+            "type": "string", 
+            "example": "Отжимания",
+            "description": "Класс активности"
           },
-          "userIds": {
+          "userIds": { 
             "type": "array",
-            "items": {
-              "type": "integer",
-              "example": 5
-            }
+            "items": { "type": "integer", "example": 5 },
+            "description": "Массив ID пользователей (из одного департамента)"
           }
         },
-        "required": ["start", "title", "location", "type", "class", "userIds"]
+        "required": ["startTime", "endTime", "title", "type", "class", "userIds"]
       },
-
       "Error": {
         "type": "object",
         "properties": {

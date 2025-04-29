@@ -6,7 +6,11 @@ const Event = sequelize.define('Event', {
     type: DataTypes.STRING,
     allowNull: false
   },
-  start: {
+  startTime: {
+    type: DataTypes.DATE,
+    allowNull: false
+  },
+  endTime: {
     type: DataTypes.DATE,
     allowNull: false
   },
@@ -33,10 +37,13 @@ const Event = sequelize.define('Event', {
       this.setDataValue('userIds', JSON.stringify(value));
     }
   },
-  status: {
-    type: DataTypes.ENUM('pending', 'approved', 'rejected'),
+  departmentId: {
+    type: DataTypes.INTEGER,
     allowNull: false,
-    defaultValue: 'approved',
+    references: {
+      model: 'Departments',
+      key: 'id'
+    }
   }
 }, {
   timestamps: true
