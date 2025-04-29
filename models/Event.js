@@ -32,6 +32,11 @@ const Event = sequelize.define('Event', {
     set(value) {
       this.setDataValue('userIds', JSON.stringify(value));
     }
+  },
+  status: {
+    type: DataTypes.ENUM('pending', 'approved', 'rejected'),
+    allowNull: false,
+    defaultValue: 'approved',
   }
 }, {
   timestamps: true

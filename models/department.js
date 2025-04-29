@@ -11,6 +11,11 @@ const Department = sequelize.define('Department', {
   description: {
     type: DataTypes.STRING,
     allowNull: true,
+  },
+  status: {
+    type: DataTypes.ENUM('pending', 'approved', 'rejected'),
+    allowNull: false,
+    defaultValue: 'pending'
   }
 });
 

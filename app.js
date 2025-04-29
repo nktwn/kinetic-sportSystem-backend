@@ -14,6 +14,7 @@ const authRoutes = require('./routes/authRoutes');
 const { router: activitiesRoutes } = require('./routes/activitiesRoutes');
 const eventsRoutes = require('./routes/eventsRoutes');
 const departmentRoutes = require('./routes/departmentRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 
 dotenv.config();
 
@@ -58,6 +59,7 @@ app.use('/activities', activitiesRoutes);
 app.use('/events', eventsRoutes);
 app.use('/departments', departmentRoutes);
 app.use(departmentUsersRoutes);
+app.use('/admin', adminRoutes);
 
 app.get('/', (req, res) => {
   res.json({ message: "Kinetic SportSystem Backend Running..." });
