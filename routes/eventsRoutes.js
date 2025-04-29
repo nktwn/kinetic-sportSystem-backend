@@ -186,8 +186,13 @@ router.put('/:id', authenticate, async (req, res) => {
       return res.status(404).json({ message: 'Событие не найдено' });
     }
 
-    if (req.user.role === 'admin' && event.departmentId !== req.user.departmentId) {
-      return res.status(403).json({ message: 'Админ может редактировать только события своего департамента' });
+    if (req.user.role === 'admin') {
+      if (!req.user.departmentId) {
+        return res.status(400).json({ message: 'У админа нет привязанного департамента' });
+      }
+      if (event.departmentId !== req.user.departmentId) {
+        return res.status(403).json({ message: 'Админ может редактировать только события своего департамента' });
+      }
     }
 
     if (type || cls) {
@@ -203,15 +208,27 @@ router.put('/:id', authenticate, async (req, res) => {
       }
     }
 
+    if (userIds) {
+      if (!Array.isArray(userIds) || userIds.length === 0) {
+        return res.status(400).json({ message: 'userIds должен быть массивом и не пустым' });
+      }
 
-    if (type || cls) {
-      const activityType = activityData.find(item => item.type === (type || event.type));
-      if (!activityType) {
-        return res.status(400).json({ message: `Тип активности "${type || event.type}" не существует` });
+      const users = await User.findAll({ where: { id: userIds } });
+
+      if (users.length !== userIds.length) {
+        return res.status(404).json({ message: 'Один или несколько пользователей не найдены' });
       }
-      if (cls && !activityType.classes.includes(cls)) {
-        return res.status(400).json({ message: `Класс "${cls}" не относится к типу "${type || event.type}"` });
+
+      const uniqueDepartmentIds = [...new Set(users.map(u => u.departmentId))];
+      if (uniqueDepartmentIds.length !== 1) {
+        return res.status(400).json({ message: 'Все участники должны быть из одного департамента' });
       }
+
+      if (req.user.role === 'admin' && uniqueDepartmentIds[0] !== req.user.departmentId) {
+        return res.status(403).json({ message: 'Админ может указывать только сотрудников своего департамента' });
+      }
+
+      event.userIds = JSON.stringify(userIds);
     }
 
     if (startTime && endTime) {
@@ -220,20 +237,39 @@ router.put('/:id', authenticate, async (req, res) => {
       if (start >= end) {
         return res.status(400).json({ message: 'Время окончания должно быть позже времени начала' });
       }
-    }
 
-    if (userIds && (!Array.isArray(userIds) || userIds.length === 0)) {
-      return res.status(400).json({ message: 'userIds должен быть массивом и не пустым' });
+      const overlappingEvents = await Event.findOne({
+        where: {
+          id: { [Sequelize.Op.ne]: eventId },
+          location: event.location,
+          [Sequelize.Op.or]: [
+            {
+              startTime: { [Sequelize.Op.between]: [startTime, endTime] }
+            },
+            {
+              endTime: { [Sequelize.Op.between]: [startTime, endTime] }
+            },
+            {
+              [Sequelize.Op.and]: [
+                { startTime: { [Sequelize.Op.lte]: startTime } },
+                { endTime: { [Sequelize.Op.gte]: endTime } }
+              ]
+            }
+          ]
+        }
+      });
+
+      if (overlappingEvents) {
+        return res.status(400).json({ message: 'В выбранное время в этой локации уже запланировано другое событие' });
+      }
+
+      event.startTime = startTime;
+      event.endTime = endTime;
     }
 
     event.title = title || event.title;
-    event.startTime = startTime || event.startTime;
-    event.endTime = endTime || event.endTime;
     event.type = type || event.type;
     event.class = cls || event.class;
-    if (userIds) {
-      event.userIds = JSON.stringify(userIds);
-    }
 
     await event.save();
 
@@ -247,8 +283,6 @@ router.put('/:id', authenticate, async (req, res) => {
     res.status(500).json({ message: 'Ошибка при обновлении события' });
   }
 });
-
-
 
 
 module.exports = router;

@@ -1,12 +1,10 @@
 const Department = require('../models/department');
 const User = require('../models/user');
 
-// Проверка: только админ с id === 1
 const isMainAdmin = (user) => {
   return user.id === 1;
 };
 
-// Создание департамента брат
 exports.createDepartment = async (req, res) => {
   const { name, description } = req.body;
   const user = req.user;
@@ -29,7 +27,6 @@ exports.createDepartment = async (req, res) => {
   }
 };
 
-// Получение всех департаментов брат
 exports.getAllDepartments = async (req, res) => {
   try {
     const departments = await Department.findAll();
@@ -40,7 +37,6 @@ exports.getAllDepartments = async (req, res) => {
   }
 };
 
-// Получение департамента по ID брат
 exports.getDepartmentById = async (req, res) => {
   const { id } = req.params;
 
@@ -60,7 +56,6 @@ exports.getDepartmentById = async (req, res) => {
   }
 };
 
-// Редактирование департамента брат
 exports.updateDepartment = async (req, res) => {
   const { id } = req.params;
   const { name, description } = req.body;
@@ -92,7 +87,6 @@ exports.updateDepartment = async (req, res) => {
   }
 };
 
-// Удаление департамента брат
 exports.deleteDepartment = async (req, res) => {
   const { id } = req.params;
   const user = req.user;
