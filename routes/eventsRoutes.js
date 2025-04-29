@@ -195,19 +195,6 @@ router.put('/:id', authenticate, async (req, res) => {
       }
     }
 
-    if (type || cls) {
-      const effectiveType = type || event.type;
-      const effectiveClass = cls || event.class;
-
-      const activityType = activityData.find(item => item.type === effectiveType);
-      if (!activityType) {
-        return res.status(400).json({ message: `Тип активности "${effectiveType}" не существует` });
-      }
-      if (!activityType.classes.includes(effectiveClass)) {
-        return res.status(400).json({ message: `Класс "${effectiveClass}" не относится к типу "${effectiveType}"` });
-      }
-    }
-
     if (userIds) {
       if (!Array.isArray(userIds) || userIds.length === 0) {
         return res.status(400).json({ message: 'userIds должен быть массивом и не пустым' });
@@ -231,9 +218,26 @@ router.put('/:id', authenticate, async (req, res) => {
       event.userIds = JSON.stringify(userIds);
     }
 
+    if (type || cls) {
+      const effectiveType = type || event.type;
+      const effectiveClass = cls || event.class;
+
+      const activityType = activityData.find(item => item.type === effectiveType);
+      if (!activityType) {
+        return res.status(400).json({ message: `Тип активности "${effectiveType}" не существует` });
+      }
+      if (!activityType.classes.includes(effectiveClass)) {
+        return res.status(400).json({ message: `Класс "${effectiveClass}" не относится к типу "${effectiveType}"` });
+      }
+
+      event.type = effectiveType;
+      event.class = effectiveClass;
+    }
+
     if (startTime && endTime) {
       const start = new Date(startTime);
       const end = new Date(endTime);
+
       if (start >= end) {
         return res.status(400).json({ message: 'Время окончания должно быть позже времени начала' });
       }
@@ -243,13 +247,9 @@ router.put('/:id', authenticate, async (req, res) => {
           id: { [Sequelize.Op.ne]: eventId },
           location: event.location,
           [Sequelize.Op.or]: [
-            {
-              startTime: { [Sequelize.Op.between]: [startTime, endTime] }
-            },
-            {
-              endTime: { [Sequelize.Op.between]: [startTime, endTime] }
-            },
-            {
+            { startTime: { [Sequelize.Op.between]: [startTime, endTime] } },
+            { endTime: { [Sequelize.Op.between]: [startTime, endTime] } },
+            { 
               [Sequelize.Op.and]: [
                 { startTime: { [Sequelize.Op.lte]: startTime } },
                 { endTime: { [Sequelize.Op.gte]: endTime } }
@@ -267,9 +267,9 @@ router.put('/:id', authenticate, async (req, res) => {
       event.endTime = endTime;
     }
 
-    event.title = title || event.title;
-    event.type = type || event.type;
-    event.class = cls || event.class;
+    if (title) {
+      event.title = title;
+    }
 
     await event.save();
 
@@ -283,6 +283,7 @@ router.put('/:id', authenticate, async (req, res) => {
     res.status(500).json({ message: 'Ошибка при обновлении события' });
   }
 });
+
 
 
 module.exports = router;
