@@ -152,37 +152,6 @@ router.post('/', authenticate, async (req, res) => {
   }
 });
 
-
-
-
-router.delete('/:id', authenticate, async (req, res) => {
-  const eventId = req.params.id;
-
-  if (!['admin', 'hr'].includes(req.user.role)) {
-    return res.status(403).json({ message: 'Только HR или Admin могут удалять события' });
-  }
-
-  try {
-    const event = await Event.findByPk(eventId);
-
-    if (!event) {
-      return res.status(404).json({ message: 'Событие не найдено' });
-    }
-
-    if (req.user.role === 'admin' && event.departmentId !== req.user.departmentId) {
-      return res.status(403).json({ message: 'Админ может удалять только события своего департамента' });
-    }
-
-    await event.destroy();
-
-    res.json({ message: 'Событие успешно удалено' });
-
-  } catch (error) {
-    console.error('Ошибка при удалении события:', error);
-    res.status(500).json({ message: 'Ошибка при удалении события' });
-  }
-});
-
 router.put('/:id', authenticate, async (req, res) => {
   const eventId = req.params.id;
   const { startTime, endTime, title, type, class: cls, userIds } = req.body;
@@ -306,7 +275,62 @@ router.put('/:id', authenticate, async (req, res) => {
   }
 });
 
+router.delete('/:id', authenticate, async (req, res) => {
+  const eventId = req.params.id;
 
+  if (!['admin', 'hr'].includes(req.user.role)) {
+    return res.status(403).json({ message: 'Только HR или Admin могут удалять события' });
+  }
+
+  try {
+    const event = await Event.findByPk(eventId);
+
+    if (!event) {
+      return res.status(404).json({ message: 'Событие не найдено' });
+    }
+
+    if (req.user.role === 'admin') {
+      if (event.departmentId !== req.user.departmentId) {
+        return res.status(403).json({ message: 'Админ может удалять только события своего департамента' });
+      }
+
+      await event.destroy();
+      return res.json({ message: 'Событие успешно удалено' });
+
+    }
+
+    if (req.user.role === 'hr') {
+      if (!event.departmentId || event.departmentId !== req.user.departmentId) {
+        return res.status(403).json({ message: 'HR может удалять события только своего департамента' });
+      }
+
+      const department = await Department.findByPk(event.departmentId);
+      if (!department.adminId) {
+        return res.status(400).json({ message: 'У департамента нет администратора' });
+      }
+
+      await EventRequest.create({
+        title: event.title,
+        startTime: event.startTime,
+        endTime: event.endTime,
+        location: event.location,
+        type: event.type,
+        class: event.class,
+        userIds: JSON.parse(event.userIds),
+        departmentId: event.departmentId,
+        action: 'delete',
+        status: 'pending',
+        eventId: event.id
+      });
+
+      return res.status(201).json({ message: 'Запрос на удаление события отправлен админу' });
+    }
+
+  } catch (error) {
+    console.error('Ошибка при удалении события:', error);
+    res.status(500).json({ message: 'Ошибка при удалении события' });
+  }
+});
 
 
 module.exports = router;
