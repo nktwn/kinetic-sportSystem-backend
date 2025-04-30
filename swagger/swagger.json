@@ -371,6 +371,93 @@
         ]
       }
     },
+    "/event-requests": {
+      "get": {
+        "tags": ["EventRequests"],
+        "summary": "Получить все запросы на события для администратора",
+        "operationId": "getEventRequests",
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Успешный ответ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/EventRequest" }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Нет доступа",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          }
+        }
+      }
+    },
+    "/event-requests/{id}/approve": {
+      "post": {
+        "tags": ["EventRequests"],
+        "summary": "Одобрить запрос на событие",
+        "operationId": "approveEventRequest",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" },
+            "description": "ID запроса на событие"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Запрос успешно одобрен",
+            "content": { "application/json": { "schema": { "type": "object", "properties": { "message": { "type": "string" } } } } }
+          },
+          "403": {
+            "description": "Нет доступа",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          },
+          "404": {
+            "description": "Запрос не найден",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          }
+        }
+      }
+    },
+    "/event-requests/{id}/reject": {
+      "post": {
+        "tags": ["EventRequests"],
+        "summary": "Отклонить запрос на событие",
+        "operationId": "rejectEventRequest",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" },
+            "description": "ID запроса на событие"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Запрос успешно отклонен",
+            "content": { "application/json": { "schema": { "type": "object", "properties": { "message": { "type": "string" } } } } }
+          },
+          "403": {
+            "description": "Нет доступа",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          },
+          "404": {
+            "description": "Запрос не найден",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          }
+        }
+      }
+    },
     "/departments": {
       "get": {
         "tags": ["Departments"],
@@ -805,6 +892,28 @@
         "properties": {
           "name": { "type": "string" },
           "description": { "type": "string" }
+        }
+      },
+      "EventRequest": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "title": { "type": "string" },
+          "startTime": { "type": "string", "format": "date-time" },
+          "endTime": { "type": "string", "format": "date-time" },
+          "location": { "type": "string" },
+          "type": { "type": "string" },
+          "class": { "type": "string" },
+          "userIds": {
+            "type": "array",
+            "items": { "type": "integer" }
+          },
+          "departmentId": { "type": "integer" },
+          "action": { "type": "string", "enum": ["post", "put", "delete"] },
+          "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+          "eventId": { "type": "integer", "nullable": true },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
         }
       },
       "ValidationError": {

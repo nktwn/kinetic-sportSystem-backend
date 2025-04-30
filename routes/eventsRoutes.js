@@ -6,6 +6,8 @@ const User = require('../models/user');
 const router = express.Router();
 const Department = require('../models/department');
 const { Sequelize } = require('sequelize');
+const EventRequest = require('../models/eventRequest');
+
 
 
 router.get('/', authenticate, async (req, res) => {
@@ -45,6 +47,15 @@ router.post('/', authenticate, async (req, res) => {
     return res.status(403).json({ message: 'Только HR или Admin могут создавать события' });
   }
 
+  const activityType = activityData.find(item => item.type === type);
+  if (!activityType) {
+    return res.status(400).json({ message: `Тип активности "${type}" не существует` });
+  }
+
+  if (!activityType.classes.includes(cls)) {
+    return res.status(400).json({ message: `Класс "${cls}" не относится к типу "${type}"` });
+  }
+
   try {
     const users = await User.findAll({
       where: { id: userIds }
@@ -57,34 +68,12 @@ router.post('/', authenticate, async (req, res) => {
     const start = new Date(startTime);
     const end = new Date(endTime);
     if (start >= end) {
-      return res.status(400).json({ message: 'Время окончания должно быть позже времени начала' });
-    }
-
-
-    if (req.user.role === 'admin') {
-
-      const adminDepartmentId = req.user.departmentId;
-      if (!adminDepartmentId) {
-        return res.status(400).json({ message: 'У админа не привязан департамент' });
-      }
-    
-      const usersFromOtherDepartments = users.filter(user => user.departmentId !== adminDepartmentId);
-      if (usersFromOtherDepartments.length > 0) {
-        return res.status(400).json({ message: 'Админ может создавать события только для работников своего департамента' });
-      }
-    }
-
-    const activityType = activityData.find(item => item.type === type);
-    if (!activityType) {
-      return res.status(400).json({ message: `Тип активности "${type}" не существует` });
-    }
-    if (!activityType.classes.includes(cls)) {
-      return res.status(400).json({ message: `Класс "${cls}" не относится к типу "${type}"` });
+      return res.status(400).json({ message: 'Время окончания должно быть позже начала' });
     }
 
     const uniqueDepartmentIds = [...new Set(users.map(u => u.departmentId))];
     if (uniqueDepartmentIds.length !== 1) {
-      return res.status(400).json({ message: 'Все участники должны быть из одного департамента' });
+      return res.status(400).json({ message: 'Все пользователи должны быть из одного департамента' });
     }
 
     const departmentId = uniqueDepartmentIds[0];
@@ -100,13 +89,9 @@ router.post('/', authenticate, async (req, res) => {
       where: {
         location,
         [Sequelize.Op.or]: [
-          {
-            startTime: { [Sequelize.Op.between]: [startTime, endTime] }
-          },
-          {
-            endTime: { [Sequelize.Op.between]: [startTime, endTime] }
-          },
-          {
+          { startTime: { [Sequelize.Op.between]: [startTime, endTime] } },
+          { endTime: { [Sequelize.Op.between]: [startTime, endTime] } },
+          { 
             [Sequelize.Op.and]: [
               { startTime: { [Sequelize.Op.lte]: startTime } },
               { endTime: { [Sequelize.Op.gte]: endTime } }
@@ -117,30 +102,57 @@ router.post('/', authenticate, async (req, res) => {
     });
 
     if (overlappingEvents) {
-      return res.status(400).json({ message: 'В выбранное время в этой локации уже запланировано другое событие' });
+      return res.status(400).json({ message: 'Пересечение событий в выбранное время' });
     }
 
-    const event = await Event.create({
-      title,
-      startTime,
-      endTime,
-      location,
-      type,
-      class: cls,
-      userIds: JSON.stringify(userIds),
-      departmentId
-    });
+    if (req.user.role === 'admin') {
+      if (!req.user.departmentId || req.user.departmentId !== departmentId) {
+        return res.status(403).json({ message: 'Админ может работать только со своим департаментом' });
+      }
 
-    res.status(201).json({
-      message: 'Событие успешно создано',
-      event
-    });
+
+      const event = await Event.create({
+        title,
+        startTime,
+        endTime,
+        location,
+        type,
+        class: cls,
+        userIds: JSON.stringify(userIds),
+        departmentId
+      });
+
+      return res.status(201).json({ message: 'Событие успешно создано', event });
+
+    } else if (req.user.role === 'hr') {
+      if (!department.adminId) {
+        return res.status(400).json({ message: 'У департамента нет администратора' });
+      }
+
+      const eventRequest = await EventRequest.create({
+        title,
+        startTime,
+        endTime,
+        location,
+        type,
+        class: cls,
+        userIds,
+        departmentId,
+        action: 'post',
+        status: 'pending',
+        eventId: null
+      });
+
+      return res.status(201).json({ message: 'Запрос на создание события отправлен админу', eventRequest });
+    }
 
   } catch (error) {
-    console.error('Ошибка при создании события:', error);
+    console.error(error);
     res.status(500).json({ message: 'Ошибка при создании события' });
   }
 });
+
+
 
 
 router.delete('/:id', authenticate, async (req, res) => {
@@ -180,109 +192,120 @@ router.put('/:id', authenticate, async (req, res) => {
   }
 
   try {
-    const event = await Event.findByPk(eventId);
-
-    if (!event) {
+    const existingEvent = await Event.findByPk(eventId);
+    if (!existingEvent) {
       return res.status(404).json({ message: 'Событие не найдено' });
     }
 
     if (req.user.role === 'admin') {
-      if (!req.user.departmentId) {
-        return res.status(400).json({ message: 'У админа нет привязанного департамента' });
-      }
-      if (event.departmentId !== req.user.departmentId) {
+      if (!req.user.departmentId || req.user.departmentId !== existingEvent.departmentId) {
         return res.status(403).json({ message: 'Админ может редактировать только события своего департамента' });
       }
     }
 
-    if (userIds) {
-      if (!Array.isArray(userIds) || userIds.length === 0) {
-        return res.status(400).json({ message: 'userIds должен быть массивом и не пустым' });
-      }
-
-      const users = await User.findAll({ where: { id: userIds } });
-
-      if (users.length !== userIds.length) {
-        return res.status(404).json({ message: 'Один или несколько пользователей не найдены' });
-      }
-
-      const uniqueDepartmentIds = [...new Set(users.map(u => u.departmentId))];
-      if (uniqueDepartmentIds.length !== 1) {
-        return res.status(400).json({ message: 'Все участники должны быть из одного департамента' });
-      }
-
-      if (req.user.role === 'admin' && uniqueDepartmentIds[0] !== req.user.departmentId) {
-        return res.status(403).json({ message: 'Админ может указывать только сотрудников своего департамента' });
-      }
-
-      event.userIds = JSON.stringify(userIds);
+    if (!Array.isArray(userIds) || userIds.length === 0) {
+      return res.status(400).json({ message: 'userIds должен быть непустым массивом' });
     }
 
-    if (type || cls) {
-      const effectiveType = type || event.type;
-      const effectiveClass = cls || event.class;
-
-      const activityType = activityData.find(item => item.type === effectiveType);
-      if (!activityType) {
-        return res.status(400).json({ message: `Тип активности "${effectiveType}" не существует` });
-      }
-      if (!activityType.classes.includes(effectiveClass)) {
-        return res.status(400).json({ message: `Класс "${effectiveClass}" не относится к типу "${effectiveType}"` });
-      }
-
-      event.type = effectiveType;
-      event.class = effectiveClass;
+    const users = await User.findAll({ where: { id: userIds } });
+    if (users.length !== userIds.length) {
+      return res.status(404).json({ message: 'Один или несколько пользователей не найдены' });
     }
 
-    if (startTime && endTime) {
-      const start = new Date(startTime);
-      const end = new Date(endTime);
+    if (users.some(user => user.departmentId !== existingEvent.departmentId)) {
+      return res.status(400).json({
+        message: 'Все выбранные пользователи должны принадлежать тому же департаменту, что и событие'
+      });
+    }
 
-      if (start >= end) {
-        return res.status(400).json({ message: 'Время окончания должно быть позже времени начала' });
+    const uniqueDepartmentIds = [...new Set(users.map(u => u.departmentId))];
+    if (uniqueDepartmentIds.length !== 1) {
+      return res.status(400).json({ message: 'Все участники должны быть из одного департамента' });
+    }
+
+    const departmentId = uniqueDepartmentIds[0];
+
+    const department = await Department.findByPk(departmentId);
+    if (!department) {
+      return res.status(404).json({ message: 'Департамент не найден' });
+    }
+
+    const location = department.location;
+
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+
+    if (start >= end) {
+      return res.status(400).json({ message: 'Время окончания должно быть позже начала' });
+    }
+
+    const overlappingEvents = await Event.findOne({
+      where: {
+        id: { [Sequelize.Op.ne]: eventId },
+        location,
+        [Sequelize.Op.or]: [
+          { startTime: { [Sequelize.Op.between]: [start, end] } },
+          { endTime: { [Sequelize.Op.between]: [start, end] } },
+          {
+            [Sequelize.Op.and]: [
+              { startTime: { [Sequelize.Op.lte]: start } },
+              { endTime: { [Sequelize.Op.gte]: end } }
+            ]
+          }
+        ]
+      }
+    });    
+
+    if (overlappingEvents) {
+      return res.status(400).json({ message: 'В выбранное время в этой локации уже есть событие' });
+    }
+
+    const activityType = activityData.find(item => item.type === type);
+    if (!activityType || !activityType.classes.includes(cls)) {
+      return res.status(400).json({ message: `Неверный тип или класс активности` });
+    }
+
+    if (req.user.role === 'hr') {
+      if (!department.adminId) {
+        return res.status(400).json({ message: 'У департамента нет администратора' });
       }
 
-      const overlappingEvents = await Event.findOne({
-        where: {
-          id: { [Sequelize.Op.ne]: eventId },
-          location: event.location,
-          [Sequelize.Op.or]: [
-            { startTime: { [Sequelize.Op.between]: [startTime, endTime] } },
-            { endTime: { [Sequelize.Op.between]: [startTime, endTime] } },
-            { 
-              [Sequelize.Op.and]: [
-                { startTime: { [Sequelize.Op.lte]: startTime } },
-                { endTime: { [Sequelize.Op.gte]: endTime } }
-              ]
-            }
-          ]
-        }
+      await EventRequest.create({
+        title,
+        startTime,
+        endTime,
+        location,
+        type,
+        class: cls,
+        userIds,
+        departmentId,
+        action: 'put',
+        status: 'pending',
+        eventId: parseInt(eventId)
       });
 
-      if (overlappingEvents) {
-        return res.status(400).json({ message: 'В выбранное время в этой локации уже запланировано другое событие' });
-      }
-
-      event.startTime = startTime;
-      event.endTime = endTime;
+      return res.status(201).json({ message: 'Запрос на обновление события отправлен админу' });
     }
 
-    if (title) {
-      event.title = title;
-    }
 
-    await event.save();
+    existingEvent.title = title;
+    existingEvent.startTime = start;
+    existingEvent.endTime = end;
+    existingEvent.location = location;
+    existingEvent.type = type;
+    existingEvent.class = cls;
+    existingEvent.userIds = JSON.stringify(userIds);
 
-    res.json({
-      message: 'Событие успешно обновлено',
-      event
-    });
+    await existingEvent.save();
+
+    res.json({ message: 'Событие успешно обновлено', event: existingEvent });
 
   } catch (error) {
     console.error('Ошибка при обновлении события:', error);
     res.status(500).json({ message: 'Ошибка при обновлении события' });
   }
 });
+
 
 
 
